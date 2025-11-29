@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>کلیک‌سنج — نسخه اصلاح‌شده</title>
+<style>
+  /* ---------- پایه و تم ---------- */
+  :root{
+    --bg-light:#f5f7fa; --card-light:#fff; --text-light:#222; --muted-light:#666; --accent:#5b8cff;
+    --bg-dark:#0f1120; --card-dark:#171822; --text-dark:#e6e9f2; --muted-dark:#9aa0b2;
+    --green-user: #27ae60;
+  }
+  html,body{height:100%;margin:0;font-family: Vazirmatn, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; -webkit-font-smoothing:antialiased;}
+  body{background:var(--bg-light); color:var(--text-light); transition:background .35s,color .35s;}
+  body.theme-dark{background:var(--bg-dark); color:var(--text-dark);}
+  .app{max-width:760px;margin:56px auto;padding:18px;display:grid;gap:18px;}
+  .card{background:var(--card-light); border-radius:14px; padding:16px; box-shadow:0 8px 28px rgba(0,0,0,0.08); transition:background .35s, color .35s;}
+  body.theme-dark .card{background:var(--card-dark); box-shadow:0 10px 36px rgba(0,0,0,0.5);}
+
+  /* ---------- header / meter ---------- */
+  .title{font-size:16px;color:var(--muted-light);margin:0 0 6px;}
+  .headline{font-size:20px;margin:0 0 12px;}
+  .meter{display:inline-flex;align-items:center;gap:10px;color:var(--muted-light);}
+  .dot{width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px var(--accent);}
+
+  /* ---------- CTA (دایره کلیک) ---------- */
+  .cta{display:flex;flex-direction:column;align-items:center;gap:10px;}
+  .bigBtn{
+    width:132px;height:132px;border-radius:50%;
+    background:linear-gradient(145deg,#ffffff,#e6eeff);
+    border:none;outline:none;
+    box-shadow:0 12px 30px rgba(91,140,255,0.18);
+    display:grid;place-items:center;font-size:34px;font-weight:800;color:var(--text-light);
+    cursor:pointer;transition:transform .12s,box-shadow .12s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body.theme-dark .bigBtn{ background:linear-gradient(145deg,#2a2b35,#2f313d); color:var(--text-dark); box-shadow:0 14px 36px rgba(0,0,0,0.5); }
+  .bigBtn:active{ transform:scale(.98); }
+  .countText{ font-size:42px; font-weight:900; }
+
+  .ctaHint{font-size:13px;color:var(--muted-light);min-height:20px;display:block; }
+
+  /* ---------- status row ---------- */
+  .row{display:flex;justify-content:space-between;align-items:center;margin-top:12px;font-size:14px;color:var(--muted-light);}
+
+  .badge{background:#e9eefc;color:#123;padding:6px 10px;border-radius:999px;font-weight:700;}
+  body.theme-dark .badge{background:#2b3248;color:#e6eeff;}
+
+  /* ---------- controls ---------- */
+  .controls{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+  button.primary{background:var(--accent);color:#fff;border:none;padding:8px 12px;border-radius:10px;cursor:pointer;font-weight:800}
+  button.ghost{background:transparent;border:1px solid rgba(0,0,0,0.06);padding:8px 12px;border-radius:10px;cursor:pointer}
+  body.theme-dark button.ghost{border-color:rgba(255,255,255,0.06); color:var(--text-dark)}
+
+  /* ---------- leaderboard ---------- */
+  .leaderboard{display:grid;gap:8px;margin-top:6px}
+  .lb-row{
+    display:flex;justify-content:space-between;align-items:center;padding:12px;border-radius:12px;
+    background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
+    box-shadow:0 8px 20px rgba(0,0,0,0.06);transition:transform .12s,box-shadow .12s,background .4s;
+  }
+  .lb-left{display:flex;align-items:center;gap:12px}
+  .rankBox{width:46px;height:46px;border-radius:10px;display:grid;place-items:center;font-weight:900}
+  .nameCol{font-weight:800}
+  .scoreCol{font-weight:900}
+
+  /* top3 full-card styles (gentle animated gradient) */
+  .goldCard{background:linear-gradient(90deg,#fff7d6,#fff2b0);animation:gradGold 6s linear infinite; color:#3b2f00}
+  .silverCard{background:linear-gradient(90deg,#eef0f4,#fbfdff); animation:gradSilver 6s linear infinite; color:#222}
+  .bronzeCard{background:linear-gradient(90deg,#fbe6cf,#f7d4aa); animation:gradBronze 6s linear infinite; color:#2b1f07}
+
+  @keyframes gradGold{0%{filter:brightness(.95)}50%{filter:brightness(1.12)}100%{filter:brightness(.98)}}
+  @keyframes gradSilver{0%{filter:brightness(.97)}50%{filter:brightness(1.06)}100%{filter:brightness(.98)}}
+  @keyframes gradBronze{0%{filter:brightness(.96)}50%{filter:brightness(1.08)}100%{filter:brightness(.97)}}
+
+  /* user's row highlight green */
+  .you{outline:3px solid rgba(39,174,96,0.12); background:linear-gradient(180deg, rgba(39,174,96,0.06), transparent);}
+
+  /* modal (center) */
+  .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;padding:18px;z-index:1200}
+  .modal{width:100%;max-width:420px;background:var(--card-light);border-radius:12px;padding:16px;box-shadow:0 18px 40px rgba(0,0,0,0.4)}
+  body.theme-dark .modal{background:var(--card-dark); color:var(--text-dark)}
+  .modal h3{margin:0 0 8px}
+  .modal p{margin:0 0 12px;color:var(--muted-light)}
+  .modal input,.modal select{width:100%;padding:10px;border-radius:10px;border:1px solid #ddd;background:transparent}
+  body.theme-dark .modal input{border-color:#444}
+  .modal .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+
+  /* theme toggle fixed */
+  #themeToggle{position:fixed;top:16px;left:16px;width:56px;height:56px;border-radius:50%;display:grid;place-items:center;z-index:1400;background:linear-gradient(145deg,#fff,#eef6ff);box-shadow:0 10px 30px rgba(91,140,255,0.14);cursor:pointer;border:none}
+  body.theme-dark #themeToggle{background:linear-gradient(145deg,#2b2f3e,#22242e); box-shadow:0 10px 30px rgba(0,0,0,0.6)}
+  #themeToggle svg{width:32px;height:32px;display:block}
+  #gameFooter{text-align:center;margin:18px 0;color:var(--muted-light)}
+
+  /* responsive */
+  @media (max-width:520px){
+    .app{margin:40px 12px;padding:12px}
+    .bigBtn{width:110px;height:110px;font-size:30px}
+    .rankBox{width:42px;height:42px}
+  }
+</style>
+</head>
+<body>
+
+<!-- theme toggle (top-left) with two inline svgs (sun + moon) -->
+<button id="themeToggle" aria-label="تغییر تم" title="تغییر تم">
+  <!-- Sun (visible in light) -->
+  <svg id="sunSVG" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+    <g fill="#FFD054" stroke="#FFD054" stroke-width="0.5">
+      <circle cx="32" cy="32" r="12"/>
+      <g stroke="#FFD054" stroke-width="2">
+        <line x1="32" y1="4" x2="32" y2="14"/>
+        <line x1="32" y1="50" x2="32" y2="60"/>
+        <line x1="4" y1="32" x2="14" y2="32"/>
+        <line x1="50" y1="32" x2="60" y2="32"/>
+        <line x1="10" y1="10" x2="18" y2="18"/>
+        <line x1="46" y1="46" x2="54" y2="54"/>
+        <line x1="10" y1="54" x2="18" y2="46"/>
+        <line x1="46" y1="18" x2="54" y2="10"/>
+      </g>
+    </g>
+  </svg>
+
+  <!-- Moon (visible in dark) -->
+  <svg id="moonSVG" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" style="display:none;">
+    <path fill="#E6E6F0" d="M20.5 2c-0.6 0-1.2 0.1-1.8 0.2 0.6 0.9 1 2 1 3.2 0 3.9-3.1 7-7 7 -1.2 0-2.3-0.3-3.2-1 0.1 0.6 0.2 1.2 0.2 1.8 0 6.6 5.4 12 12 12 0.7 0 1.3 0 2-0.1 -4.8-0.7-8.4-4.5-8.4-9.1 0-4.5 3.1-8.3 7.5-9.2C22.2 3.1 21.4 2 20.5 2z"/>
+  </svg>
+</button>
+
+<!-- Modal: register -->
+<div id="modalRegister" class="modal-backdrop" style="display:none;">
+  <div class="modal" role="dialog" aria-modal="true">
+    <h3>ثبت نام</h3>
+    <p>فقط حروف فارسی (۲–۲۰ کاراکتر). نام تکراری قابل قبول نیست.</p>
+    <div class="field"><input id="registerName" placeholder="مثلاً: آروین" /></div>
+    <div class="actions">
+      <button id="btnRegister" class="primary">ثبت</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: edit name -->
+<div id="modalEditName" class="modal-backdrop" style="display:none;">
+  <div class="modal" role="dialog" aria-modal="true">
+    <h3>ویرایش نام</h3>
+    <p>نام جدید را وارد کنید (تکراری نباشد)</p>
+    <div class="field"><input id="editName" placeholder="نام جدید"></div>
+    <div class="actions">
+      <button id="btnSaveEdit" class="primary">ذخیره</button>
+      <button id="btnCancelEdit" class="ghost">انصراف</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: edit time -->
+<div id="modalEditTime" class="modal-backdrop" style="display:none;">
+  <div class="modal" role="dialog" aria-modal="true">
+    <h3>ویرایش زمان بازی</h3>
+    <p>زمان موردنظر را انتخاب کنید</p>
+    <div class="field">
+      <select id="selectTime">
+        <option value="5">۵ ثانیه</option>
+        <option value="10">۱۰ ثانیه</option>
+        <option value="15">۱۵ ثانیه</option>
+        <option value="20">۲۰ ثانیه</option>
+        <option value="25">۲۵ ثانیه</option>
+        <option value="30">۳۰ ثانیه</option>
+      </select>
+    </div>
+    <div class="actions">
+      <button id="btnSaveTime" class="primary">ثبت زمان</button>
+      <button id="btnCancelTime" class="ghost">انصراف</button>
+    </div>
+  </div>
+</div>
+
+<main class="app" role="main">
+  <!-- Game card -->
+  <section class="card" aria-labelledby="gameTitle">
+    <h2 id="gameTitle" class="title">کلیک‌سنج</h2>
+    <div class="headline">
+      <span class="meter"><span class="dot" aria-hidden="true"></span> زمان باقیمانده:
+        <span id="timeLeft" class="timer" aria-live="polite">0.00</span>
+      </span>
+    </div>
+
+    <div class="cta" role="application" aria-label="ناحیهٔ بازی">
+      <button id="btnBig" class="bigBtn" aria-pressed="false" aria-label="دایرهٔ کلیک">
+        <div class="countText" id="countText">0</div>
+      </button>
+      <div class="ctaHint" id="ctaHint">برای شروع روی دایره کلیک کن</div>
+    </div>
+
+    <div class="row" aria-hidden="false">
+      <div class="last-result" id="lastResult">آخرین نتیجه: —</div>
+      <div class="badge" id="playerBadge">نام ثبت نشده</div>
+    </div>
+
+    <div class="controls" style="margin-top:12px;">
+      <button id="btnEditName" class="ghost">ویرایش نام</button>
+      <button id="btnEditTime" class="ghost">ویرایش زمان</button>
+    </div>
+  </section>
+
+  <!-- Leaderboard card -->
+  <section class="card" aria-labelledby="lbTitle">
+    <h3 id="lbTitle" class="title">رکوردهای برتر (<span id="currentTimeLabel"></span>)</h3>
+    <div style="margin:8px 0;font-weight:700">رتبهٔ شما: <span id="yourRank">—</span></div>
+    <div id="leaderboard" class="leaderboard" aria-live="polite"></div>
+  </section>
+</main>
+
+<footer id="gameFooter">کاری از سید آروین موسوی</footer>
+
+<script>
+/* --------------------------
+   کلیدها در localStorage
+   -------------------------- */
+const KEY_NAME = "cgv5_username";
+const KEY_SCORES = "cgv5_scores"; // object: { "5":[{name,score,date},...], ... }
+const KEY_TIME = "cgv5_time";
+const KEY_THEME = "cgv5_theme";
+
+/* ---------- المان‌ها ---------- */
+const themeToggle = document.getElementById('themeToggle');
+const sunSVG = document.getElementById('sunSVG');
+const moonSVG = document.getElementById('moonSVG');
+
+const modalRegister = document.getElementById('modalRegister');
+const registerName = document.getElementById('registerName');
+const btnRegister = document.getElementById('btnRegister');
+
+const modalEditName = document.getElementById('modalEditName');
+const editName = document.getElementById('editName');
+const btnSaveEdit = document.getElementById('btnSaveEdit');
+const btnCancelEdit = document.getElementById('btnCancelEdit');
+
+const modalEditTime = document.getElementById('modalEditTime');
+const selectTime = document.getElementById('selectTime');
+const btnSaveTime = document.getElementById('btnSaveTime');
+const btnCancelTime = document.getElementById('btnCancelTime');
+
+const btnEditName = document.getElementById('btnEditName');
+const btnEditTime = document.getElementById('btnEditTime');
+
+const timeLeftEl = document.getElementById('timeLeft');
+const btnBig = document.getElementById('btnBig');
+const countText = document.getElementById('countText');
+const ctaHint = document.getElementById('ctaHint');
+const lastResult = document.getElementById('lastResult');
+const playerBadge = document.getElementById('playerBadge');
+
+const leaderboardEl = document.getElementById('leaderboard');
+const yourRankEl = document.getElementById('yourRank');
+const currentTimeLabel = document.getElementById('currentTimeLabel');
+
+/* ---------- وضعیت داخلی ---------- */
+let username = localStorage.getItem(KEY_NAME) || "";
+let scores = JSON.parse(localStorage.getItem(KEY_SCORES) || "{}"); // object keyed by duration
+let gameTime = parseInt(localStorage.getItem(KEY_TIME) || "5", 10);
+let theme = localStorage.getItem(KEY_THEME) || "light";
+
+let running = false;
+let startTs = 0;
+let rafId = null;
+let clicks = 0;
+let locked = false;
+
+/* ---------- helpers ---------- */
+function saveAll(){
+  localStorage.setItem(KEY_SCORES, JSON.stringify(scores));
+}
+function setName(n){
+  username = n.trim();
+  localStorage.setItem(KEY_NAME, username);
+}
+function setTime(t){
+  gameTime = parseInt(t,10);
+  localStorage.setItem(KEY_TIME, String(gameTime));
+  currentTimeLabel.textContent = gameTime + " ثانیه";
+  selectTime.value = String(gameTime);
+}
+function setTheme(t){
+  theme = t;
+  localStorage.setItem(KEY_THEME, t);
+  if(t === "dark") document.body.classList.add("theme-dark");
+  else document.body.classList.remove("theme-dark");
+  // toggle icons visibility
+  sunSVG.style.display = (t === "dark") ? "none" : "block";
+  moonSVG.style.display = (t === "dark") ? "block" : "none";
+  // footer color
+  document.getElementById('gameFooter').style.color = (t === "dark") ? "#eaeaf1" : "#333";
+}
+
+/* ---------- validation ---------- */
+function isPersianName(s){
+  if(!s) return false;
+  return /^[\u0600-\u06FF\s]{2,20}$/.test(s);
+}
+function nameExistsElsewhere(name, exceptName = ""){
+  const nm = name.trim();
+  for(const dur in scores){
+    for(const r of scores[dur]){
+      if(r.name === nm && r.name !== exceptName) return true;
+    }
+  }
+  return false;
+}
+
+/* ---------- leaderboard/render ---------- */
+function computeRankForName(name, duration){
+  const list = (scores[duration] || []).slice().sort((a,b)=>b.score-a.score);
+  for(let i=0;i<list.length;i++){
+    if(list[i].name === name) return i+1;
+  }
+  return null;
+}
+function renderLeaderboard(){
+  leaderboardEl.innerHTML = "";
+  currentTimeLabel.textContent = gameTime + " ثانیه";
+  const listAll = (scores[gameTime] || []).slice().sort((a,b)=>b.score-a.score);
+  const top = listAll.slice(0,20);
+
+  if(top.length === 0){
+    const empty = document.createElement('div');
+    empty.className = 'lb-row';
+    empty.textContent = 'هنوز رکوردی ثبت نشده';
+    leaderboardEl.appendChild(empty);
+    yourRankEl.textContent = '—';
+    return;
+  }
+
+  top.forEach((r, idx) => {
+    const row = document.createElement('div');
+    row.className = 'lb-row';
+    if(idx === 0) row.classList.add('goldCard');
+    else if(idx === 1) row.classList.add('silverCard');
+    else if(idx === 2) row.classList.add('bronzeCard');
+
+    if(r.name === username) row.classList.add('you');
+
+    const left = document.createElement('div'); left.className = 'lb-left';
+    const rankBox = document.createElement('div'); rankBox.className = 'rankBox';
+    rankBox.textContent = idx + 1;
+    const nameCol = document.createElement('div'); nameCol.className = 'nameCol';
+    nameCol.textContent = r.name;
+    if(r.name === username) { nameCol.style.color = 'var(--green-user)'; nameCol.style.fontWeight='900'; }
+
+    left.appendChild(rankBox); left.appendChild(nameCol);
+
+    const scoreCol = document.createElement('div'); scoreCol.className = 'scoreCol';
+    scoreCol.textContent = r.score;
+
+    row.appendChild(left); row.appendChild(scoreCol);
+    leaderboardEl.appendChild(row);
+  });
+
+  const rank = computeRankForName(username, gameTime);
+  yourRankEl.textContent = rank ? rank : 'خارج از ۲۰ نفر';
+}
+
+/* ---------- score update ---------- */
+function saveScore(name, score, duration){
+  if(!scores[duration]) scores[duration] = [];
+  const arr = scores[duration];
+  const idx = arr.findIndex(x=>x.name === name);
+  if(idx >= 0){
+    if(score > arr[idx].score) arr[idx].score = score;
+    arr[idx].date = new Date().toISOString();
+  } else {
+    arr.push({name, score, date: new Date().toISOString()});
+  }
+  saveAll();
+  renderLeaderboard();
+}
+
+/* ---------- game flow ---------- */
+function setTimeLeft(v){ timeLeftEl.textContent = v.toFixed(2); }
+
+function startRun(){
+  if(locked) return;
+  if(!username){ showModalRegister(true); return; }
+  if(running) return;
+  clicks = 0; countText.textContent = '0';
+  let startTime = performance.now();
+  running = true;
+  setTimeLeft(gameTime);
+  ctaHint.textContent = 'در حال انجام...';
+  function rafTick(now){
+    const elapsed = (now - startTime)/1000;
+    const rem = Math.max(0, gameTime - elapsed);
+    setTimeLeft(rem);
+    if(rem <= 0){
+      running = false;
+      cancelAnimationFrame(rafId);
+      setTimeLeft(0);
+      saveScore(username, clicks, gameTime);
+      lastResult.textContent = `آخرین نتیجه: ${clicks} کلیک در ${gameTime} ثانیه`;
+      // lock for 3 seconds
+      locked = true; btnBig.disabled = true;
+      let sec = 3;
+      ctaHint.textContent = `تمام! ${sec} ثانیه تا شروع بعدی`;
+      const lockInt = setInterval(()=>{
+        sec--;
+        if(sec > 0) ctaHint.textContent = `تمام! ${sec} ثانیه تا شروع بعدی`;
+        else { clearInterval(lockInt); locked = false; btnBig.disabled = false; ctaHint.textContent = 'برای شروع دوباره کلیک کن'; }
+      },1000);
+      renderLeaderboard();
+      return;
+    }
+    rafId = requestAnimationFrame(rafTick);
+  }
+  rafId = requestAnimationFrame(rafTick);
+}
+
+/* ---------- modal show/hide ---------- */
+function showModalRegister(show){ modalRegister.style.display = show ? 'flex' : 'none'; if(show) setTimeout(()=>registerName.focus(),50); }
+function showModalEditName(show){ editName.value = username || ''; modalEditName.style.display = show ? 'flex' : 'none'; if(show) setTimeout(()=>editName.focus(),50); }
+function showModalEditTime(show){ selectTime.value = String(gameTime); modalEditTime.style.display = show ? 'flex' : 'none'; }
+
+/* ---------- init ---------- */
+function init(){
+  // restore theme/time/scores/name
+  setTheme(localStorage.getItem(KEY_THEME) || 'light');
+  scores = JSON.parse(localStorage.getItem(KEY_SCORES) || "{}");
+  username = localStorage.getItem(KEY_NAME) || "";
+  gameTime = parseInt(localStorage.getItem(KEY_TIME) || "5",10) || 5;
+  selectTime.value = String(gameTime);
+  currentTimeLabel.textContent = gameTime + " ثانیه";
+  setTimeLeft(gameTime);
+
+  if(!username) showModalRegister(true);
+  else { updatePlayerUI(); renderLeaderboard(); }
+}
+
+function updatePlayerUI(){ playerBadge.textContent = username || 'نام ثبت نشده'; showModalRegister(false); }
+
+/* ---------- events ---------- */
+// register
+btnRegister.addEventListener('click', ()=>{
+  const v = registerName.value.trim();
+  if(!isPersianName(v)){ alert("نام باید 2 تا 20 حرف فارسی باشد."); return; }
+  if(nameExistsElsewhere(v)){ alert("این نام قبلاً استفاده شده. نام دیگری انتخاب کنید."); return; }
+  setName(v);
+  updatePlayerUI();
+  renderLeaderboard();
+  showModalRegister(false);
+});
+
+// edit name
+btnEditName.addEventListener('click', ()=> showModalEditName(true));
+btnCancelEdit.addEventListener('click', ()=> showModalEditName(false));
+btnSaveEdit.addEventListener('click', ()=>{
+  const newName = editName.value.trim();
+  if(!isPersianName(newName)){ alert("نام باید 2 تا 20 حرف فارسی باشد."); return; }
+  if(newName === username){ showModalEditName(false); return; }
+  if(nameExistsElsewhere(newName)){ alert("این نام قبلاً برای بازیکن دیگری استفاده شده."); return; }
+  // replace name across all durations
+  for(const t in scores){
+    scores[t].forEach(s=>{ if(s.name === username) s.name = newName; });
+  }
+  saveAll();
+  setName(newName);
+  updatePlayerUI();
+  renderLeaderboard();
+  showModalEditName(false);
+});
+
+// edit time
+btnEditTime.addEventListener('click', ()=> showModalEditTime(true));
+btnCancelTime.addEventListener('click', ()=> showModalEditTime(false));
+btnSaveTime.addEventListener('click', ()=>{
+  const t = parseInt(selectTime.value,10);
+  if(!t || t <= 0){ alert("زمان معتبر نیست"); return; }
+  setTime(t);
+  renderLeaderboard();
+  showModalEditTime(false);
+});
+
+// big button click (counts)
+btnBig.addEventListener('click', (e)=>{
+  if(!running && !locked){
+    // start immediately and count this click
+    startRun();
+    clicks++; countText.textContent = String(clicks);
+    return;
+  }
+  if(running){
+    clicks++; countText.textContent = String(clicks);
+  }
+});
+
+// also support tap anywhere while running (but don't trigger UI elements)
+document.addEventListener('pointerdown', (e)=>{
+  if(e.target.closest('.modal')) return;
+  if(e.target.closest('.ghost') || e.target.closest('.primary')) return;
+  if(running){
+    clicks++; countText.textContent = String(clicks);
+  }
+});
+
+// theme toggle
+themeToggle.addEventListener('click', ()=>{
+  const newTheme = (theme === 'dark') ? 'light' : 'dark';
+  setTheme(newTheme);
+});
+
+/* ---------- utility ---------- */
+function setScores(obj){ scores = obj; saveAll(); }
+
+/* ---------- start ---------- */
+init();
+
+</script>
+</body>
+</html>
