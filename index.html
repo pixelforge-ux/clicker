@@ -763,8 +763,19 @@ document.addEventListener("DOMContentLoaded", () => {
     function handleMove(direction) {
       if (!game) return;
       const { moved, newTile } = game.move(direction);
-      if (!moved) return;
-      renderGrid(game.grid, false, newTile || null);
+
+      // If nothing moved, still add a new tile (as requested).
+      if (!moved) {
+        const added = game.addRandomTile();
+        if (added) {
+          renderGrid(game.grid, false, added || null);
+        } else {
+          // No space to add a tile — keep current grid rendered
+          renderGrid(game.grid, false, null);
+        }
+      } else {
+        renderGrid(game.grid, false, newTile || null);
+      }
 
       if (game.won && !game.keepPlaying) {
         showMessage(`تبریک! به ${WIN_VALUE} رسیدی 🎉`, "win");
@@ -835,6 +846,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (Math.max(absDx, absDy) < threshold) return;
 
         let dir;
+        // Correct mapping: positive dx -> right, negative -> left
         if (absDx > absDy) {
           dir = dx > 0 ? "left" : "right";
         } else {
