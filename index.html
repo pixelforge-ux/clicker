@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
@@ -831,33 +832,78 @@ document.addEventListener("DOMContentLoaded", () => {
       { passive: true }
     );
 
-    gridElement.addEventListener(
-      "touchend",
-      (e) => {
-        if (!touchMoved) return;
+    // تشخیص موبایل/تاچ
+const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
-        const touch = e.changedTouches[0];
-        const dx = touch.clientX - touchStartX;
-        const dy = touch.clientY - touchStartY;
+// Input handling
+if (isTouchDevice) {
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let touchMoved = false;
 
-        const absDx = Math.abs(dx);
-        const absDy = Math.abs(dy);
-        const threshold = 10;
+  gridElement.addEventListener(
+    "touchstart",
+    (e) => {
+      if (!e.touches || e.touches.length !== 1) return;
+      const touch = e.touches[0];
+      touchStartX = touch.clientX;
+      touchStartY = touch.clientY;
+      touchMoved = false;
+    },
+    { passive: true }
+  );
 
-        if (Math.max(absDx, absDy) < threshold) return;
+  gridElement.addEventListener(
+    "touchmove",
+    (e) => {
+      if (!e.touches || e.touches.length !== 1) return;
+      touchMoved = true;
+    },
+    { passive: true }
+  );
 
-        let dir;
+  gridElement.addEventListener(
+    "touchend",
+    (e) => {
+      if (!touchMoved) return;
 
-        if (absDx > absDy) {
-          dir = dx > 0 ? "left" : "right";
-        } else {
-          dir = dy > 0 ? "down" : "up";
-        }
+      const touch = e.changedTouches[0];
+      const dx = touch.clientX - touchStartX;
+      const dy = touch.clientY - touchStartY;
 
-        handleMove(dir);
-      },
-      { passive: true }
-    );/* Buttons */
+      const absDx = Math.abs(dx);
+      const absDy = Math.abs(dy);
+      const threshold = 10;
+      if (Math.max(absDx, absDy) < threshold) return;
+
+      let dir;
+      if (absDx > absDy) {
+        dir = dx > 0 ? "left" : "right"; // جهت واقعی روی موبایل
+      } else {
+        dir = dy > 0 ? "down" : "up";
+      }
+
+      handleMove(dir);
+    },
+    { passive: true }
+  );
+} else {
+  // دسکتاپ: فقط کیبورد
+  window.addEventListener("keydown", (e) => {
+    let dir = null;
+    switch (e.key) {
+      case "ArrowUp": dir = "up"; break;
+      case "ArrowDown": dir = "down"; break;
+      case "ArrowLeft": dir = "right"; break;
+      case "ArrowRight": dir = "left"; break;
+      default: break;
+    }
+    if (!dir) return;
+    e.preventDefault();
+    handleMove(dir);
+  });
+}
+/* Buttons */
     newGameBtn.addEventListener("click", () => {
       game.reset();
       renderGrid(game.grid, true);
